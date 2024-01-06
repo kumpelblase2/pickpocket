@@ -1,6 +1,7 @@
 use clap::Parser;
 use dll_syringe::process::*;
 use dll_syringe::Syringe;
+use std::env::set_var;
 use std::os::raw::c_void;
 use std::os::windows::io::FromRawHandle;
 use std::path::{Path, PathBuf};
@@ -66,10 +67,14 @@ fn create_suspended_process(exe_path: &Path, args: &str) -> (OwnedProcess, PROCE
 struct Cli {
     silkroad: Option<PathBuf>,
     dll: Option<PathBuf>,
+    skip_ad: Option<bool>,
 }
 
 fn main() {
     let cli_args = Cli::parse();
+
+    set_var("skip_ad", cli_args.skip_ad.unwrap_or(true).to_string());
+
     let silkroad_path = cli_args
         .silkroad
         .unwrap_or_else(|| PathBuf::from("C:/Program Files (x86)/Silkroad/sro_client.exe"));

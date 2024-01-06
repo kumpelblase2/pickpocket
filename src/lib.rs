@@ -1,7 +1,7 @@
 use log::{debug, info, LevelFilter};
 use retour::static_detour;
 use std::ffi::c_void;
-use std::mem;
+use std::{env, mem};
 use windows::core::s;
 use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::AllocConsole;
@@ -53,9 +53,8 @@ fn on_data_written(packet: *mut c_void, content: *const u8, size: usize) {
     }
 }
 
-fn on_open_ad(unknown: u32) {
+fn on_open_ad(_unknown: u32) {
     // Do nothing - we don't care.
-    return;
 }
 
 #[no_mangle]
@@ -84,6 +83,10 @@ fn init_mutexes() {
     debug!("Setup mutexes to bypass launcher check.");
 }
 
+fn should_skip_ad() -> bool {
+    env::var("skip_ad").unwrap_or(String::from("0")).parse().unwrap_or(true)
+}
+
 fn init_detours() {
     unsafe {
         let target: SetOpcodeFn = mem::transmute(OPCODE_SET_FN);
@@ -105,14 +108,14 @@ fn init_detours() {
             .initialize(target, on_data_written)
             .expect("Should be able to initialize write detour");
 
-        let target: OpenAdFn = mem::transmute(OPEN_AD_FN);
-        OpenAdDetour
-            .initialize(target, on_open_ad)
-            .expect("Should be able to initialize ad detour");
-        OpenAdDetour.enable().expect("Should be able to enable ad detour.");
+        if should_skip_ad() {
+            let target: OpenAdFn = mem::transmute(OPEN_AD_FN);
+            OpenAdDetour
+                .initialize(target, on_open_ad)
+                .expect("Should be able to initialize ad detour");
+            OpenAdDetour.enable().expect("Should be able to enable ad detour.");
+        }
     }
-
-    info!("Detours set up, waiting for packets.");
 }
 
 fn attach() -> bool {
@@ -120,6 +123,7 @@ fn attach() -> bool {
     info!("Successfully injected.");
     init_mutexes();
     init_detours();
+    info!("Detours set up, waiting for packets.");
     true
 }
 
