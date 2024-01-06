@@ -341,6 +341,7 @@ dependencies = [
  "ctor",
  "dll-syringe",
  "log",
+ "once_cell",
  "retour",
  "simple-logging",
  "windows",
