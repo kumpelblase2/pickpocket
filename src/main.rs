@@ -1,7 +1,8 @@
-use clap::Parser;
+use clap::{ArgAction, Parser};
 use dll_syringe::process::*;
 use dll_syringe::Syringe;
 use std::env::set_var;
+use std::ops::Not;
 use std::os::raw::c_void;
 use std::os::windows::io::FromRawHandle;
 use std::path::{Path, PathBuf};
@@ -65,15 +66,52 @@ fn create_suspended_process(exe_path: &Path, args: &str) -> (OwnedProcess, PROCE
 
 #[derive(Parser)]
 struct Cli {
+    #[clap(long, help = "Specify the location of the `sro_client.exe` executable")]
     silkroad: Option<PathBuf>,
+    #[clap(long, help = "Specify the location of the `pocket.dll` library")]
     dll: Option<PathBuf>,
-    skip_ad: Option<bool>,
+    #[clap(
+        long,
+        help = "Do not skip the advertisement after the client closes.",
+        action = ArgAction::SetFalse
+    )]
+    no_skip_ad: bool,
+    #[clap(long, help = "Specify the address for the packet send function. Currently unused.")]
+    send_address: Option<usize>,
+    #[clap(long, help = "Specify the address for the data write function.")]
+    write_address: Option<usize>,
+    #[clap(
+        long,
+        help = "Specify the address for the packet enqueuing function, which is run to setup a packet as well as sending one."
+    )]
+    opcode_address: Option<usize>,
+    #[clap(
+        long,
+        help = "Specify the address for the function opening the advertisement window."
+    )]
+    skip_ad_address: Option<usize>,
 }
 
 fn main() {
     let cli_args = Cli::parse();
 
-    set_var("skip_ad", cli_args.skip_ad.unwrap_or(true).to_string());
+    set_var("SKIP_AD", cli_args.no_skip_ad.not().to_string());
+
+    if let Some(send_address) = cli_args.send_address {
+        set_var("PACKET_SEND_ADDRESS", send_address);
+    }
+
+    if let Some(write_address) = cli_args.write_address {
+        set_var("PACKET_WRITE_ADDRESS", write_address);
+    }
+
+    if let Some(opcode_address) = cli_args.opcode_address {
+        set_var("PACKET_OPCODE_ADDRESS", opcode_address);
+    }
+
+    if let Some(skip_address) = cli_args.skip_ad_address {
+        set_var("AD_OPEN_ADDRESS", skip_address);
+    }
 
     let silkroad_path = cli_args
         .silkroad

@@ -1,3 +1,4 @@
+use clap::builder::TypedValueParser;
 use log::{debug, info, LevelFilter};
 use once_cell::sync::OnceCell;
 use retour::static_detour;
@@ -12,6 +13,10 @@ use windows::Win32::Foundation::*;
 use windows::Win32::System::Console::AllocConsole;
 use windows::Win32::System::SystemServices::*;
 use windows::Win32::System::Threading::CreateMutexA;
+
+fn address_from_env(env: &str, address: usize) -> usize {
+    env::var(env).ok().and_then(|v| v.parse().ok()).unwrap_or(address)
+}
 
 const OPCODE_SET_FN: usize = 0x00686300;
 const PACKET_SEND_FN: usize = 0x00686680;
@@ -198,7 +203,11 @@ fn init_mutexes() {
 }
 
 fn should_skip_ad() -> bool {
-    env::var("skip_ad").unwrap_or(String::from("0")).parse().unwrap_or(true)
+    if let Ok(v) = env::var("SKIP_AD") {
+        v.parse().ok().unwrap_or(true)
+    } else {
+        true
+    }
 }
 
 fn init_detours() {
@@ -213,7 +222,7 @@ fn init_detours() {
 }
 
 unsafe fn init_skip_ad_detour() {
-    let target: OpenAdFn = mem::transmute(OPEN_AD_FN);
+    let target: OpenAdFn = mem::transmute(address_from_env("AD_OPEN_ADDRESS", OPEN_AD_FN));
     OpenAdDetour
         .initialize(target, on_open_ad)
         .expect("Should be able to initialize ad detour");
@@ -221,14 +230,14 @@ unsafe fn init_skip_ad_detour() {
 }
 
 unsafe fn init_packet_write_detour() {
-    let target: WriteDataFn = mem::transmute(PACKET_WRITE_FN);
+    let target: WriteDataFn = mem::transmute(address_from_env("PACKET_WRITE_ADDRESS", PACKET_WRITE_FN));
     WriteDetour
         .initialize(target, on_data_written)
         .expect("Should be able to initialize write detour");
 }
 
 unsafe fn init_packet_send_detour() {
-    let target: SendPacketFn = mem::transmute(PACKET_SEND_FN);
+    let target: SendPacketFn = mem::transmute(address_from_env("PACKET_SEND_ADDRESS", PACKET_SEND_FN));
     SendPacketDetour
         .initialize(target, on_packet_send)
         .expect("Should be able to initialize send detour");
@@ -236,7 +245,7 @@ unsafe fn init_packet_send_detour() {
 }
 
 unsafe fn init_opcode_set_detour() {
-    let target: SetOpcodeFn = mem::transmute(OPCODE_SET_FN);
+    let target: SetOpcodeFn = mem::transmute(address_from_env("PACKET_OPCODE_ADDRESS", OPCODE_SET_FN));
     SetOpcodeDetour
         .initialize(target, on_packet_create)
         .expect("Should be able to initialize opcode detour");
