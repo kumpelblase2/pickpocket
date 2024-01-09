@@ -85,6 +85,10 @@ struct Cli {
         help = "Specify the address for the packet enqueuing function, which is run to setup a packet as well as sending one."
     )]
     opcode_address: Option<usize>,
+    #[clap(long, help = "Specify the address for the data reading function.")]
+    read_address: Option<usize>,
+    #[clap(long, help = "Specify the address for the packet accepting/handling function.")]
+    accept_address: Option<usize>,
     #[clap(
         long,
         help = "Specify the address for the function opening the advertisement window."
@@ -98,19 +102,27 @@ fn main() {
     set_var("SKIP_AD", cli_args.no_skip_ad.not().to_string());
 
     if let Some(send_address) = cli_args.send_address {
-        set_var("PACKET_SEND_ADDRESS", send_address);
+        set_var("PACKET_SEND_ADDRESS", send_address.to_string());
     }
 
     if let Some(write_address) = cli_args.write_address {
-        set_var("PACKET_WRITE_ADDRESS", write_address);
+        set_var("PACKET_WRITE_ADDRESS", write_address.to_string());
     }
 
     if let Some(opcode_address) = cli_args.opcode_address {
-        set_var("PACKET_OPCODE_ADDRESS", opcode_address);
+        set_var("PACKET_OPCODE_ADDRESS", opcode_address.to_string());
+    }
+
+    if let Some(read_address) = cli_args.read_address {
+        set_var("PACKET_READ_ADDRESS", read_address.to_string());
+    }
+
+    if let Some(accept_address) = cli_args.accept_address {
+        set_var("PACKET_ACCEPT_ADDRESS", accept_address.to_string());
     }
 
     if let Some(skip_address) = cli_args.skip_ad_address {
-        set_var("AD_OPEN_ADDRESS", skip_address);
+        set_var("AD_OPEN_ADDRESS", skip_address.to_string());
     }
 
     let silkroad_path = cli_args
