@@ -22,6 +22,8 @@ log = "0.4"
 retour = { git = "https://github.com/Hpmason/retour-rs", features = ["static-detour", "thiscall-abi"] }
 clap = { version = "4.4.13", features = ["derive"] }
 once_cell = "1.19.0"
+ipc-channel = "0.18.0"
+serde = {  version ="1", features = ["derive"] }
 
 [dependencies.windows]
 version = "0.*"
